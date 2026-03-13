@@ -13,7 +13,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# Функции для вывода
+# Функции для вывода - ВСЕГДА используем echo
 print_info()    { echo -e "${GREEN}[INFO]${NC} $1"; }
 print_warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
 print_error()   { echo -e "${RED}[ERROR]${NC} $1"; }
@@ -59,27 +59,27 @@ if [[ $EUID -ne 0 ]]; then
 fi
 
 print_header
-print_info "🔧 НАСТРОЙКА АЛЬТ СЕРВЕРА — Модуль 1"
-print_info "📋 Код: 09.02.06-1-2026"
+print_info "НАСТРОЙКА АЛЬТ СЕРВЕРА - Модуль 1"
+print_info "Код: 09.02.06-1-2026"
 print_header
 
 print_info "Режим: ${MODE} (${HOSTNAME})"
 print_info "Домен: ${DOMAIN}"
 print_info ""
-print_info "🌐 Сетевая конфигурация:"
-print_info "  • Внешний интерфейс: ${EXTERNAL_IF} → ${EXTERNAL_IP}"
+print_info "Сетевая конфигурация:"
+print_info "  - Внешний интерфейс: ${EXTERNAL_IF} -> ${EXTERNAL_IP}"
 if [[ -n "$INTERNAL_IP" ]]; then
-    print_info "  • Внутренний интерфейс: ${INTERNAL_IF} → ${INTERNAL_IP}"
+    print_info "  - Внутренний интерфейс: ${INTERNAL_IF} -> ${INTERNAL_IP}"
 fi
-print_info "  • Локальная сеть: ${INTERNAL_NET}"
-print_info "  • Шлюз по умолчанию: ${DEFAULT_GW}"
+print_info "  - Локальная сеть: ${INTERNAL_NET}"
+print_info "  - Шлюз по умолчанию: ${DEFAULT_GW}"
 print_info ""
-print_info "🔐 Учётные данные:"
-print_info "  • root пароль: ${ROOT_PASS}"
-print_info "  • SSH порты: ${SSH_PORT}, ${SSH_SECURE_PORT}"
+print_info "Учётные данные:"
+print_info "  - root пароль: ${ROOT_PASS}"
+print_info "  - SSH порты: ${SSH_PORT}, ${SSH_SECURE_PORT}"
 print_header
 
-read -p "▶️  Продолжить настройку? [y/N]: " -n 1 -r
+read -p "Продолжить настройку? [y/N]: " -n 1 -r
 echo ""
 if [[ ! $REPLY =~ ^[Yy]$ ]]; then
     print_warn "Настройка отменена пользователем"
@@ -90,11 +90,11 @@ fi
 # 🔧 ОСНОВНАЯ НАСТРОЙКА
 # =============================================================================
 
-# 1️⃣ Установка имени сервера
-print_info "📛 Установка имени сервера: ${HOSTNAME}.${DOMAIN}..."
+# 1. Установка имени сервера
+print_info "Установка имени сервера: ${HOSTNAME}.${DOMAIN}..."
 hostnamectl set-hostname "${HOSTNAME}.${DOMAIN}" 2>/dev/null || hostnamectl set-hostname "$HOSTNAME"
 
-print_info "📝 Обновление /etc/hosts..."
+print_info "Обновление /etc/hosts..."
 cat > /etc/hosts << EOF
 127.0.0.1   localhost localhost.localdomain
 127.0.1.1   ${HOSTNAME}.${DOMAIN} ${HOSTNAME}
@@ -110,12 +110,12 @@ EOF
 sleep 1
 CURRENT_HOST=$(hostname)
 if [[ "$CURRENT_HOST" == "$HOSTNAME"* ]]; then
-    print_info "✅ Имя сервера установлено: $(hostname -f 2>/dev/null || hostname)"
+    print_info "Имя сервера установлено: $(hostname -f 2>/dev/null || hostname)"
 else
-    print_warn "⚠️ Имя сервера применится после перезагрузки"
+    print_warn "Имя сервера применится после перезагрузки"
 fi
 
-# 2️⃣ Настройка интерфейсов
+# 2. Настройка интерфейсов
 configure_interface() {
     local iface="$1"
     local ip_addr="$2"
@@ -125,7 +125,7 @@ configure_interface() {
         return 0
     fi
     
-    print_info "⚙️  Настройка интерфейса ${iface} → ${ip_addr}..."
+    print_info "Настройка интерфейса ${iface} -> ${ip_addr}..."
     
     mkdir -p /etc/net/ifaces/"${iface}"
     
@@ -144,7 +144,7 @@ EOF
         echo "default via ${DEFAULT_GW}" > /etc/net/ifaces/"${iface}"/route
     fi
     
-    print_info "✅ Конфигурация ${iface} сохранена"
+    print_info "Конфигурация ${iface} сохранена"
 }
 
 configure_interface "$EXTERNAL_IF" "$EXTERNAL_IP" "yes"
@@ -153,15 +153,15 @@ if [[ -n "$INTERNAL_IP" ]]; then
     configure_interface "$INTERNAL_IF" "$INTERNAL_IP" "no"
 fi
 
-print_info "🔄 Перезапуск сетевой службы..."
+print_info "Перезапуск сетевой службы..."
 systemctl restart network 2>/dev/null || net restart 2>/dev/null || true
 
 sleep 2
-print_info "🔍 Проверка IP-адресов..."
-ip -4 addr show | grep -E "inet .*(${EXTERNAL_IF}|${INTERNAL_IF})" || print_warn "⚠️ Интерфейсы могут требовать перезагрузки"
+print_info "Проверка IP-адресов..."
+ip -4 addr show | grep -E "inet .*(${EXTERNAL_IF}|${INTERNAL_IF})" || print_warn "Интерфейсы могут требовать перезагрузки"
 
-# 3️⃣ Включение IP-форвардинга
-print_info "🔀 Включение IP-форвардинга..."
+# 3. Включение IP-форвардинга
+print_info "Включение IP-форвардинга..."
 
 for conf_file in /etc/sysctl.conf /etc/net/sysctl.conf; do
     if [[ -f "$conf_file" ]]; then
@@ -177,29 +177,29 @@ sysctl -p /etc/sysctl.conf 2>/dev/null || true
 sysctl -w net.ipv4.ip_forward=1 2>/dev/null || true
 
 if [[ "$(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null)" == "1" ]]; then
-    print_info "✅ IP-форвардинг включён"
+    print_info "IP-форвардинг включён"
 else
-    print_warn "⚠️ Не удалось включить форвардинг"
+    print_warn "Не удалось включить форвардинг"
 fi
 
-# 4️⃣ Настройка NAT
-print_info "🛡️  Настройка NAT (MASQUERADE)..."
+# 4. Настройка NAT
+print_info "Настройка NAT (MASQUERADE)..."
 
 iptables -t nat -F POSTROUTING 2>/dev/null || true
 iptables -F FORWARD 2>/dev/null || true
 
 if [[ "$MODE" == "BR" ]]; then
     iptables -t nat -A POSTROUTING -o "$EXTERNAL_IF" -s "$INTERNAL_NET" -j MASQUERADE
-    print_info "✅ NAT: ${INTERNAL_NET} → ${EXTERNAL_IF}"
+    print_info "NAT: ${INTERNAL_NET} -> ${EXTERNAL_IF}"
     
     iptables -A FORWARD -i "$INTERNAL_IF" -o "$EXTERNAL_IF" -j ACCEPT
     iptables -A FORWARD -i "$EXTERNAL_IF" -o "$INTERNAL_IF" -m state --state ESTABLISHED,RELATED -j ACCEPT
 else
     iptables -t nat -A POSTROUTING -o "$EXTERNAL_IF" -s "192.168.100.0/24" -j MASQUERADE
-    print_info "✅ NAT: 192.168.100.0/24 → ${EXTERNAL_IF}"
+    print_info "NAT: 192.168.100.0/24 -> ${EXTERNAL_IF}"
 fi
 
-print_info "💾 Сохранение правил iptables..."
+print_info "Сохранение правил iptables..."
 mkdir -p /etc/sysconfig
 iptables-save > /etc/sysconfig/iptables
 
@@ -217,10 +217,10 @@ elif ! grep -q "iptables-restore" /etc/rc.local; then
     chmod +x /etc/rc.local
 fi
 
-print_info "✅ Правила iptables сохранены"
+print_info "Правила iptables сохранены"
 
-# 5️⃣ Настройка безопасности
-print_info "🔐 Базовая настройка безопасности..."
+# 5. Настройка безопасности
+print_info "Базовая настройка безопасности..."
 
 for port in "$SSH_PORT" "$SSH_SECURE_PORT"; do
     iptables -A INPUT -p tcp --dport "$port" -j ACCEPT 2>/dev/null || true
@@ -229,12 +229,12 @@ done
 iptables -A INPUT -p icmp --icmp-type echo-request -j ACCEPT 2>/dev/null || true
 iptables-save > /etc/sysconfig/iptables
 
-# 6️⃣ DHCP сервер (опционально)
+# 6. DHCP сервер (опционально)
 if [[ "$MODE" == "BR" && "$INTERNAL_IP" == *"192.168.0.1"* ]]; then
-    print_info "📡 Установка DHCP-сервера..."
+    print_info "Установка DHCP-сервера..."
     
     apt-get update -qq 2>/dev/null || true
-    apt-get install -y dhcp-server 2>/dev/null || print_warn "⚠️ Не удалось установить dhcp-server"
+    apt-get install -y dhcp-server 2>/dev/null || print_warn "Не удалось установить dhcp-server"
     
     if [[ -f /etc/dhcp/dhcpd.conf ]]; then
         cat > /etc/dhcp/dhcpd.conf << DHCP
@@ -253,7 +253,7 @@ subnet ${INTERNAL_NET} netmask 255.255.255.0 {
     option broadcast-address ${INTERNAL_NET%.*}.255;
 }
 DHCP
-        print_info "✅ Конфигурация DHCP сохранена"
+        print_info "Конфигурация DHCP сохранена"
     fi
 fi
 
@@ -262,41 +262,42 @@ fi
 # =============================================================================
 
 print_header
-print_info "${GREEN}✅ НАСТРОЙКА ЗАВЕРШЕНА!${NC}"
+print_info "НАСТРОЙКА ЗАВЕРШЕНА!"
 print_header
 
-echo -e "${BLUE}📋 Итоговая конфигурация:${NC}"
-echo "  • Имя сервера:      $(hostname -f 2>/dev/null || hostname)"
-echo "  • Режим:            ${MODE}"
-echo "  • Внешний интерфейс: ${EXTERNAL_IF} → ${EXTERNAL_IP}"
+echo ""
+echo "Итоговая конфигурация:"
+echo "  - Имя сервера:      $(hostname -f 2>/dev/null || hostname)"
+echo "  - Режим:            ${MODE}"
+echo "  - Внешний интерфейс: ${EXTERNAL_IF} -> ${EXTERNAL_IP}"
 if [[ -n "$INTERNAL_IP" ]]; then
-    echo "  • Внутренний интерфейс: ${INTERNAL_IF} → ${INTERNAL_IP}"
+    echo "  - Внутренний интерфейс: ${INTERNAL_IF} -> ${INTERNAL_IP}"
 fi
-echo "  • Локальная сеть:   ${INTERNAL_NET}"
-echo "  • Шлюз:             ${DEFAULT_GW}"
-echo "  • NAT:              включён"
-echo "  • SSH порты:        ${SSH_PORT}, ${SSH_SECURE_PORT}"
+echo "  - Локальная сеть:   ${INTERNAL_NET}"
+echo "  - Шлюз:             ${DEFAULT_GW}"
+echo "  - NAT:              включён"
+echo "  - SSH порты:        ${SSH_PORT}, ${SSH_SECURE_PORT}"
 echo ""
 
-echo -e "${BLUE}🔍 Текущие интерфейсы:${NC}"
+echo "Текущие интерфейсы:"
 ip -br -4 addr show | grep -v "lo" || echo "  (нет IPv4 адресов)"
 echo ""
 
-echo -e "${BLUE}🛡️  Правила NAT:${NC}"
+echo "Правила NAT:"
 iptables -t nat -L POSTROUTING -n -v --line-numbers 2>/dev/null | head -10 || echo "  (нет правил)"
 echo ""
 
-echo -e "${BLUE}🔄 Статус форвардинга:${NC}"
+echo "Статус форвардинга:"
 echo "  net.ipv4.ip_forward = $(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null || echo 'unknown')"
 echo ""
 
 print_header
-echo -e "${YELLOW}📝 Инструкции для клиента:${NC}"
+echo "Инструкции для клиента:"
 echo ""
 echo "1. На клиенте в сети ${INTERNAL_NET} настройте:"
-echo "   • IP-адрес:     ${INTERNAL_NET%.*}.100/24"
-echo "   • Шлюз:         ${INTERNAL_NET%.*}.1"
-echo "   • DNS:          8.8.8.8"
+echo "   - IP-адрес:     ${INTERNAL_NET%.*}.100/24"
+echo "   - Шлюз:         ${INTERNAL_NET%.*}.1"
+echo "   - DNS:          8.8.8.8"
 echo ""
 echo "2. Проверьте соединение:"
 echo "   ping -c 4 ${DEFAULT_GW}"
